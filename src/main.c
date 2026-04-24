@@ -83,7 +83,7 @@ static void print_dashboard(const SharedBuffer *shared_buffer) {
     size_t task_index = 0U;
     SchedulerStats stats_snapshot = scheduler_get_stats();
 
-    (void)printf("\n=== chrono dashboard ===\n");
+    (void)printf("\n=== Chrono dashboard ===\n");
     (void)printf("%-7s %-10s %-9s %-11s %-12s\n", "task ID", "name", "priority", "state", "cpu_time_ms");
 
     for (task_index = 0U; task_index < task_count; ++task_index) {
@@ -119,14 +119,14 @@ static void producer_task(void *task_argument) {
     }
 
     if (sem_wait(&context->shared_buffer->slots_available) != 0) {
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
     new_item = (BufferItem *)mem_alloc(sizeof(BufferItem));
     if (new_item == NULL) {
         (void)sem_signal(&context->shared_buffer->slots_available);
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
@@ -135,7 +135,7 @@ static void producer_task(void *task_argument) {
     if (cmutex_lock(&context->shared_buffer->buffer_mutex) != 0) {
         mem_free(new_item);
         (void)sem_signal(&context->shared_buffer->slots_available);
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
@@ -143,7 +143,7 @@ static void producer_task(void *task_argument) {
         (void)cmutex_unlock(&context->shared_buffer->buffer_mutex);
         mem_free(new_item);
         (void)sem_signal(&context->shared_buffer->slots_available);
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
@@ -153,7 +153,7 @@ static void producer_task(void *task_argument) {
     context->shared_buffer->produced_total += 1;
 
     if (cmutex_unlock(&context->shared_buffer->buffer_mutex) != 0) {
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
@@ -171,20 +171,20 @@ static void consumer_task(void *task_argument) {
     }
 
     if (sem_wait(&context->shared_buffer->items_available) != 0) {
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
     if (cmutex_lock(&context->shared_buffer->buffer_mutex) != 0) {
         (void)sem_signal(&context->shared_buffer->items_available);
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
     if (context->shared_buffer->item_count <= 0) {
         (void)cmutex_unlock(&context->shared_buffer->buffer_mutex);
         (void)sem_signal(&context->shared_buffer->items_available);
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
@@ -195,7 +195,7 @@ static void consumer_task(void *task_argument) {
     context->shared_buffer->consumed_total += 1;
 
     if (cmutex_unlock(&context->shared_buffer->buffer_mutex) != 0) {
-        context->self_task->state = BLOCKED;
+        context->self_task->state = READY;
         return;
     }
 
@@ -293,10 +293,10 @@ static void destroy_shared_buffer(SharedBuffer *shared_buffer) {
 int main(void) {
     SharedBuffer shared_buffer;
 
-    TCB producer_tcb = {1, 0, READY, producer_task, NULL, 0U};
+    TCB producer_tcb = {1, 1, READY, producer_task, NULL, 0U};
     TCB consumer_tcb = {2, 1, READY, consumer_task, NULL, 0U};
-    TCB logger_tcb = {3, 2, READY, logger_task, NULL, 0U};
-    TCB monitor_tcb = {4, 3, READY, monitor_task, NULL, 0U};
+    TCB logger_tcb = {3, 1, READY, logger_task, NULL, 0U};
+    TCB monitor_tcb = {4, 1, READY, monitor_task, NULL, 0U};
 
     ProducerTaskContext producer_context = {&producer_tcb, &shared_buffer, 1};
     ConsumerTaskContext consumer_context = {&consumer_tcb, &shared_buffer, 0};

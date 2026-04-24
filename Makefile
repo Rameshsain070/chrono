@@ -7,10 +7,10 @@ INCLUDES := -Iinclude
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-$(CC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(SRC)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(TARGET) $(SRC)
 
 run: $(TARGET)
-./$(TARGET)
+	./$(TARGET)
 
 clean:
-rm -f $(TARGET)
+	rm -f $(TARGET)

@@ -11,7 +11,7 @@ static uint8_t g_pool_bytes[MEMPOOL_TOTAL_BYTES];
 static uint8_t g_block_in_use[MEMPOOL_BLOCK_COUNT];
 
 /* Stores allocation run length at run start and -1 for continuation blocks. */
-static int8_t g_allocation_map[MEMPOOL_BLOCK_COUNT];
+static int16_t g_allocation_map[MEMPOOL_BLOCK_COUNT];
 
 /* Guards memory pool metadata for thread-safe access. */
 static pthread_mutex_t g_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -76,7 +76,7 @@ void *mem_alloc(size_t requested_size) {
         size_t block_index = (size_t)run_start + block_offset;
         g_block_in_use[block_index] = 1U;
         if (block_offset == 0U) {
-            g_allocation_map[block_index] = (int8_t)blocks_needed;
+            g_allocation_map[block_index] = (int16_t)blocks_needed;
         } else {
             g_allocation_map[block_index] = -1;
         }
@@ -92,7 +92,7 @@ void mem_free(void *memory_ptr) {
     uintptr_t pool_end = (uintptr_t)&g_pool_bytes[MEMPOOL_TOTAL_BYTES - 1U] + 1U;
     uintptr_t pointer_value = (uintptr_t)memory_ptr;
     size_t block_index = 0U;
-    int8_t allocation_blocks = 0;
+    int16_t allocation_blocks = 0;
     size_t block_offset = 0U;
 
     if (memory_ptr == NULL) {

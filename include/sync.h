@@ -30,7 +30,7 @@ int cmutex_destroy(CMutex *mutex_handle);
 /* Initializes a CSemaphore with an initial count. */
 int csem_init(CSemaphore *semaphore_handle, int initial_count);
 
-/* Attempts to decrement a CSemaphore count and returns -1 when unavailable. */
+/* Attempts to decrement a CSemaphore count and returns -1 with EAGAIN when unavailable. */
 int sem_wait(CSemaphore *semaphore_handle);
 
 /* Increments a CSemaphore count and wakes one waiting thread. */

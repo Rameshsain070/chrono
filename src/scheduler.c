@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 /* Stores task pointers registered with the scheduler. */
 static TCB *g_tasks[SCHEDULER_MAX_TASKS];
@@ -167,7 +166,16 @@ static int scheduler_all_tasks_dead(void) {
 /* Builds the scheduling heap from tasks that are eligible to run. */
 static void scheduler_build_heap(void) {
     size_t task_index = 0U;
+    int has_ready_tasks = 0;
     g_heap_size = 0U;
+
+    for (task_index = 0U; task_index < g_task_count; ++task_index) {
+        TCB *task_control_block = g_tasks[task_index];
+        if (task_control_block != NULL && task_control_block->state == READY) {
+            has_ready_tasks = 1;
+            break;
+        }
+    }
 
     for (task_index = 0U; task_index < g_task_count; ++task_index) {
         TCB *task_control_block = g_tasks[task_index];
@@ -175,7 +183,8 @@ static void scheduler_build_heap(void) {
             continue;
         }
 
-        if (task_control_block->state == READY || task_control_block->state == BLOCKED) {
+        if (task_control_block->state == READY ||
+            (!has_ready_tasks && task_control_block->state == BLOCKED)) {
             (void)scheduler_heap_push(task_index);
         }
     }
@@ -193,6 +202,14 @@ static uint64_t scheduler_elapsed_ms(const struct timespec *start_time, const st
     start_ms = ((uint64_t)start_time->tv_sec * 1000U) + ((uint64_t)start_time->tv_nsec / 1000000U);
     end_ms = ((uint64_t)end_time->tv_sec * 1000U) + ((uint64_t)end_time->tv_nsec / 1000000U);
     return (end_ms >= start_ms) ? (end_ms - start_ms) : 0U;
+}
+
+/* Sleeps for one scheduler time slice using nanosleep. */
+static void scheduler_sleep_slice(void) {
+    struct timespec sleep_interval;
+    sleep_interval.tv_sec = TIME_SLICE_MS / 1000;
+    sleep_interval.tv_nsec = (long)(TIME_SLICE_MS % 1000) * 1000000L;
+    (void)nanosleep(&sleep_interval, NULL);
 }
 
 /* Initializes scheduler runtime state and clears prior task registrations. */
@@ -247,13 +264,13 @@ void scheduler_run(void) {
 
         scheduler_build_heap();
         if (scheduler_heap_pop(&selected_task_index) != 0) {
-            (void)usleep((useconds_t)(TIME_SLICE_MS * 1000));
+            scheduler_sleep_slice();
             continue;
         }
 
         selected_task = g_tasks[selected_task_index];
         if (selected_task == NULL || selected_task->state == DEAD || selected_task->state == SUSPENDED) {
-            (void)usleep((useconds_t)(TIME_SLICE_MS * 1000));
+            scheduler_sleep_slice();
             continue;
         }
 
@@ -282,7 +299,7 @@ void scheduler_run(void) {
         }
 
         g_rr_sequence[selected_task_index] = g_sequence_counter++;
-        (void)usleep((useconds_t)(TIME_SLICE_MS * 1000));
+        scheduler_sleep_slice();
     }
 }
 

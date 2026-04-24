@@ -53,7 +53,7 @@ int csem_init(CSemaphore *semaphore_handle, int initial_count) {
     return 0;
 }
 
-/* Attempts a non-blocking semaphore decrement and returns -1 if count is zero. */
+/* Attempts a semaphore decrement without condition-variable blocking and returns -1 if count is zero. */
 int sem_wait(CSemaphore *semaphore_handle) {
     int return_code = 0;
 
