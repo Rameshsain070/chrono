@@ -100,7 +100,7 @@ Final scheduler summary:
 | Data structures (heap, ring buffer, block map) | Min-heap in `src/scheduler.c`, circular buffer in `src/main.c`, block metadata arrays in `src/mempool.c` |
 | POSIX threads primitives | `pthread_mutex_*`, `pthread_cond_*`, `nanosleep` in `src/sync.c`, `src/mempool.c`, `src/scheduler.c` |
 
-## Interview Talking Points
+## Important  Talking Points
 
 - Built an RTOS-like scheduler simulation from first principles in C, including lifecycle-managed TCBs and deterministic timeslice dispatch.
 - Implemented priority-aware round-robin selection with explicit context-switch accounting and per-task CPU-time measurement.
